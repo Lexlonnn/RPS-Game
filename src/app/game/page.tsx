@@ -22,12 +22,15 @@ function GameContent() {
   const [playerChoice, setPlayerChoice] = useState<Choice | null>(null);
   const [computerChoice, setComputerChoice] = useState<Choice | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  const [gameState, setGameState] = useState<"idle" | "animating" | "finished" | "gameOver">("idle");
+  const [gameState, setGameState] = useState<"loading" | "idle" | "animating" | "finished" | "gameOver">("loading");
   const [score, setScore] = useState<Score>({ player: 0, computer: 0 });
   const [roundsPlayed, setRoundsPlayed] = useState<number>(0);
   const [flippedPlayerIndex, setFlippedPlayerIndex] = useState<number | null>(null);
   const [flippedComputerIndex, setFlippedComputerIndex] = useState<number | null>(null);
   const [overallResult, setOverallResult] = useState<GameResult>(null);
+  const [cardsReady, setCardsReady] = useState<boolean>(false);
+  const [animationStage, setAnimationStage] = useState<"initial" | "cardFlip" | "handAnimation" | "resultReveal">("initial");
+  const [pageLoaded, setPageLoaded] = useState<boolean>(false);
 
   const choices: Choice[] = useMemo(() => ["Rock", "Paper", "Scissors"], []);
   const choiceIcons: Record<Choice, string> = {
@@ -44,22 +47,48 @@ function GameContent() {
     setFlippedPlayerIndex(null);
     setFlippedComputerIndex(null);
     setGameState("idle");
+    setAnimationStage("initial");
   }, []);
 
   // Initialize game with new cards and reset all scores
   const startNewGame = useCallback(() => {
+    // First set loading state
+    setGameState("loading");
+    setCardsReady(false);
+    
     const shuffledPlayer = [...choices].sort(() => Math.random() - 0.5);
     const shuffledComputer = [...choices].sort(() => Math.random() - 0.5);
-    setPlayerCards(shuffledPlayer);
-    setComputerCards(shuffledComputer);
+    
+    // Cards enter with animation effect - staggered timing for smoother appearance
+    setTimeout(() => {
+      setPlayerCards(shuffledPlayer);
+      setComputerCards(shuffledComputer);
+      
+      // Delay slightly before showing cards to ensure smooth transition
+      setTimeout(() => {
+        setCardsReady(true);
+        
+        // After cards animation completes, set game to idle
+        setTimeout(() => {
+          setGameState("idle");
+        }, 800);
+      }, 400);
+    }, 600);
     
     // Reset all game state
     resetRound();
     setScore({ player: 0, computer: 0 });
     setRoundsPlayed(0);
     setOverallResult(null);
-    setGameState("idle");
   }, [choices, resetRound]);
+  
+  // Handle initial page load animations
+  useEffect(() => {
+    // Trigger page load animation after a short delay
+    setTimeout(() => {
+      setPageLoaded(true);
+    }, 100);
+  }, []);
 
   // Watch for changes in the URL params
   useEffect(() => {
@@ -77,10 +106,28 @@ function GameContent() {
 
   // Create new cards for next round
   const prepareNextRound = useCallback(() => {
+    // First set loading state
+    setGameState("loading");
+    setCardsReady(false);
+    
     const shuffledPlayer = [...choices].sort(() => Math.random() - 0.5);
     const shuffledComputer = [...choices].sort(() => Math.random() - 0.5);
-    setPlayerCards(shuffledPlayer);
-    setComputerCards(shuffledComputer);
+    
+    // Cards enter with animation effect - longer, smoother transitions
+    setTimeout(() => {
+      setPlayerCards(shuffledPlayer);
+      setComputerCards(shuffledComputer);
+      
+      setTimeout(() => {
+        setCardsReady(true);
+        
+        // After cards animation completes, set game to idle
+        setTimeout(() => {
+          setGameState("idle");
+        }, 800);
+      }, 400);
+    }, 600);
+    
     resetRound();
   }, [choices, resetRound]);
 
@@ -116,6 +163,7 @@ function GameContent() {
     setPlayerChoice(selectedChoice);
     setFlippedPlayerIndex(index);
     setGameState("animating");
+    setAnimationStage("cardFlip");
     
     // Computer selects a random card after delay
     setTimeout(() => {
@@ -124,13 +172,23 @@ function GameContent() {
       setComputerChoice(computerSelectedChoice);
       setFlippedComputerIndex(computerIndex);
       
-      // Determine winner after animations complete
+      // Move to hand animation stage
       setTimeout(() => {
-        determineWinner(selectedChoice, computerSelectedChoice);
-        setRoundsPlayed(prev => prev + 1);
-        setGameState("finished");
-      }, 1000);
-    }, 500);
+        setAnimationStage("handAnimation");
+        
+        // Determine winner after animations complete
+        setTimeout(() => {
+          setAnimationStage("resultReveal");
+          determineWinner(selectedChoice, computerSelectedChoice);
+          setRoundsPlayed(prev => prev + 1);
+          
+          // Small delay before setting finished state for smoother transition
+          setTimeout(() => {
+            setGameState("finished");
+          }, 300);
+        }, 1500);
+      }, 600);
+    }, 800);
   };
 
   const determineWinner = (player: Choice, computer: Choice): void => {
@@ -186,32 +244,63 @@ function GameContent() {
     }
   };
 
+  // Generate a random rotation for initial card appearance
+  const getRandomRotation = () => {
+    return Math.floor(Math.random() * 6 - 3); // -3 to +3 degrees for more subtle rotation
+  };
+
+  // Generate a slight random offset for cards to make them look more natural
+  const getRandomOffset = () => {
+    return Math.floor(Math.random() * 8 - 4); // -4px to +4px
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4">
+    <div className={`flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4 overflow-hidden transition-opacity duration-1000 ease-in-out ${pageLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Enhanced Background Animation */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full">
+          {[...Array(30)].map((_, i) => (
+            <div 
+              key={i}
+              className="absolute rounded-full bg-white opacity-10 animate-float"
+              style={{
+                width: `${Math.random() * 12 + 3}px`,
+                height: `${Math.random() * 12 + 3}px`,
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDuration: `${Math.random() * 8 + 4}s`,
+                animationDelay: `${Math.random() * 5}s`
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
       {/* Round Info and Controls */}
-      <div className="flex items-center justify-center mb-4 text-white">
+      <div className={`flex items-center justify-center mb-4 text-white transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}
+           style={{ transitionDelay: '200ms' }}>
         {gameState !== "gameOver" && (
-          <div className="text-xl mr-8">
+          <div className="text-xl mr-8 animate-fadeIn">
             Round {roundsPlayed + 1} of {totalRounds}
           </div>
         )}
         
         {/* Round selector - only visible before game starts or after game ends */}
         {(gameState === "idle" && roundsPlayed === 0) || gameState === "gameOver" ? (
-          <div className="flex items-center">
+          <div className="flex items-center animate-fadeIn">
             <span className="mr-2">Rounds:</span>
             <div className="flex border border-white rounded-lg overflow-hidden">
               <button 
                 onClick={() => handleChangeRounds(totalRounds - 2)}
                 disabled={totalRounds <= 3}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50"
+                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
               >
                 -2
               </button>
               <button 
                 onClick={() => handleChangeRounds(totalRounds - 1)}
                 disabled={totalRounds <= 1}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50"
+                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
               >
                 -
               </button>
@@ -219,14 +308,14 @@ function GameContent() {
               <button 
                 onClick={() => handleChangeRounds(totalRounds + 1)}
                 disabled={totalRounds >= 10}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50"
+                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
               >
                 +
               </button>
               <button 
                 onClick={() => handleChangeRounds(totalRounds + 2)}
                 disabled={totalRounds >= 8}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50"
+                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
               >
                 +2
               </button>
@@ -236,25 +325,33 @@ function GameContent() {
       </div>
 
       {/* Score Display */}
-      <div className="flex items-center justify-center gap-8 mb-8">
-        <div className="text-center">
-          <p className="text-white opacity-80">You</p>
-          <p className="text-4xl font-bold text-green-400">{score.player}</p>
+      <div className={`flex items-center justify-center gap-8 mb-8 transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}
+           style={{ transitionDelay: '400ms' }}>
+        <div className="text-center relative group">
+          <div className="absolute -inset-2 bg-green-500 opacity-20 rounded-lg blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
+          <div className="relative">
+            <p className="text-white opacity-80">You</p>
+            <p className="text-4xl font-bold text-green-400 transition-all duration-500">{score.player}</p>
+          </div>
         </div>
-        <div className="text-white text-2xl font-bold">vs</div>
-        <div className="text-center">
-          <p className="text-white opacity-80">Computer</p>
-          <p className="text-4xl font-bold text-red-400">{score.computer}</p>
+        <div className="text-white text-2xl font-bold animate-pulse">vs</div>
+        <div className="text-center relative group">
+          <div className="absolute -inset-2 bg-red-500 opacity-20 rounded-lg blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
+          <div className="relative">
+            <p className="text-white opacity-80">Computer</p>
+            <p className="text-4xl font-bold text-red-400 transition-all duration-500">{score.computer}</p>
+          </div>
         </div>
       </div>
 
       {/* Game Over Screen */}
       {gameState === "gameOver" ? (
-        <div className="flex flex-col items-center justify-center">
+        <div className={`flex flex-col items-center justify-center animate-scaleIn ${pageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-1000 ease-out`}
+             style={{ transitionDelay: '600ms' }}>
           <div className={`text-5xl font-bold mb-8 ${
-            overallResult === "win" ? "text-green-400" :
-            overallResult === "lose" ? "text-red-400" :
-            "text-purple-400"
+            overallResult === "win" ? "text-green-400 animate-bounce" :
+            overallResult === "lose" ? "text-red-400 animate-pulse" :
+            "text-purple-400 animate-pulse"
           }`}>
             {overallResult === "win" ? "You Won The Game!" :
              overallResult === "lose" ? "You Lost The Game!" :
@@ -266,13 +363,13 @@ function GameContent() {
           <div className="flex gap-6">
             <button
               onClick={handlePlayAgain}
-              className="px-8 py-3 bg-gradient-to-r from-green-500 to-teal-600 font-bold rounded-full hover:scale-105 transition-all text-lg"
+              className="px-8 py-3 bg-gradient-to-r from-green-500 to-teal-600 font-bold rounded-full hover:scale-110 transition-all duration-300 text-lg shadow-lg shadow-green-900/50 hover:shadow-green-900/70"
             >
               Play Again
             </button>
             <button
               onClick={handleBackToHome}
-              className="px-8 py-3 bg-white text-purple-900 font-bold rounded-full hover:bg-gray-200 transition-colors text-lg"
+              className="px-8 py-3 bg-white text-purple-900 font-bold rounded-full hover:bg-gray-200 hover:scale-105 transition-all duration-300 text-lg shadow-lg"
             >
               Back to Home
             </button>
@@ -281,34 +378,43 @@ function GameContent() {
       ) : (
         <>
           {/* Game Arena */}
-          <div className="flex w-full max-w-5xl justify-between mb-12">
+          <div className={`flex w-full max-w-5xl justify-between mb-12 transition-all duration-1000 ease-out ${pageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+              style={{ transitionDelay: '600ms' }}>
             {/* Player Side */}
             <div className="flex flex-col items-center">
-              <h2 className="text-2xl font-bold text-white mb-4">Player</h2>
+              <h2 className={`text-2xl font-bold text-white mb-4 transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                   style={{ transitionDelay: '700ms' }}>Player</h2>
               <div className="flex flex-col gap-6">
                 {playerCards.map((card, index) => (
                   <div 
                     key={`player-${index}`}
                     onClick={() => gameState === "idle" && handlePlayerCardClick(index)}
-                    className={`relative w-32 h-40 cursor-pointer transition-all duration-300 ${
-                      gameState === "idle" ? "hover:scale-105" : ""
+                    className={`relative w-32 h-40 cursor-pointer transition-all duration-700 ease-out ${
+                      gameState === "idle" ? "hover:scale-110 hover:rotate-2 hover:shadow-lg hover:shadow-blue-500/30" : ""
                     } ${
-                      flippedPlayerIndex === index && gameState !== "idle" 
+                      flippedPlayerIndex === index && gameState !== "idle" && gameState !== "loading"
                         ? "transform translate-x-20 z-10" 
                         : ""
+                    } ${
+                      !cardsReady ? "opacity-0 -translate-x-20" : "opacity-100 translate-x-0"
                     }`}
-                    style={{ perspective: "1000px" }}
+                    style={{ 
+                      perspective: "1500px",
+                      transitionDelay: `${index * 150}ms`,
+                      transform: cardsReady && gameState === "idle" ? `rotate(${getRandomRotation()}deg) translateY(${getRandomOffset()}px)` : undefined
+                    }}
                   >
-                    <div className={`relative w-full h-full transition-transform duration-500 ${
+                    <div className={`relative w-full h-full transition-transform duration-700 ease-out ${
                       flippedPlayerIndex === index ? "[transform:rotateY(180deg)]" : ""
                     }`} style={{ transformStyle: "preserve-3d" }}>
                       {/* Card Back (Hidden) */}
-                      <div className="absolute w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg flex items-center justify-center [backface-visibility:hidden]">
-                        <span className="text-white text-6xl">?</span>
+                      <div className="absolute w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg flex items-center justify-center [backface-visibility:hidden] hover:from-blue-500 hover:to-blue-700 group">
+                        <span className="text-white text-6xl group-hover:scale-110 transition-transform duration-500">?</span>
+                        <div className="absolute inset-0 rounded-xl border-2 border-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                       {/* Card Front (Revealed) */}
                       <div className="absolute w-full h-full bg-gradient-to-br from-green-500 to-green-700 rounded-xl shadow-lg flex flex-col items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        <span className="text-7xl">{choiceIcons[card]}</span>
+                        <span className="text-7xl animate-floatBounce">{choiceIcons[card]}</span>
                         <span className="text-white text-lg mt-2">{card}</span>
                       </div>
                     </div>
@@ -318,34 +424,39 @@ function GameContent() {
             </div>
 
             {/* Center Battle Area */}
-            <div className="flex flex-col items-center justify-center mx-8 w-64">
+            <div className={`flex flex-col items-center justify-center mx-8 w-64 transition-all duration-1000 ease-out ${pageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{ transitionDelay: '800ms' }}>
               {/* 3D Hand Effects */}
               <div className="relative w-full h-48 mb-8 flex justify-between items-center">
                 {/* Player Hand */}
-                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-7xl transition-all duration-500 ${
+                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-7xl transition-all duration-700 ease-out ${
                   gameState === "idle" ? "bg-blue-500" : 
-                  gameState === "animating" ? "bg-blue-500 scale-150" : "bg-blue-500"
+                  gameState === "animating" && animationStage === "handAnimation" ? "bg-blue-500 scale-150 animate-glow" : 
+                  gameState === "animating" ? "bg-blue-500" : "bg-blue-500"
                 } shadow-xl`}>
-                  <div className={`transform transition-transform duration-500 ${
+                  <div className={`transform transition-transform duration-700 ease-out ${
                     !playerChoice ? "" :
-                    playerChoice === "Rock" ? "rotate-0" :
-                    playerChoice === "Paper" ? "rotate-0" :
-                    "rotate-0"
+                    playerChoice === "Rock" && animationStage === "handAnimation" ? "animate-smoothShake" :
+                    playerChoice === "Paper" && animationStage === "handAnimation" ? "animate-smoothWave" :
+                    playerChoice === "Scissors" && animationStage === "handAnimation" ? "animate-smoothCut" :
+                    ""
                   }`}>
                     {!playerChoice ? "✊" : choiceIcons[playerChoice]}
                   </div>
                 </div>
 
                 {/* Computer Hand */}
-                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-7xl transition-all duration-500 ${
+                <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-7xl transition-all duration-700 ease-out ${
                   gameState === "idle" ? "bg-red-500" : 
-                  gameState === "animating" ? "bg-red-500 scale-150" : "bg-red-500"
+                  gameState === "animating" && animationStage === "handAnimation" ? "bg-red-500 scale-150 animate-glow" : 
+                  gameState === "animating" ? "bg-red-500" : "bg-red-500"
                 } shadow-xl`}>
-                  <div className={`transform transition-transform duration-500 ${
+                  <div className={`transform transition-transform duration-700 ease-out ${
                     !computerChoice ? "" :
-                    computerChoice === "Rock" ? "rotate-0" :
-                    computerChoice === "Paper" ? "rotate-0" :
-                    "rotate-0"
+                    computerChoice === "Rock" && animationStage === "handAnimation" ? "animate-smoothShake" :
+                    computerChoice === "Paper" && animationStage === "handAnimation" ? "animate-smoothWave" :
+                    computerChoice === "Scissors" && animationStage === "handAnimation" ? "animate-smoothCut" :
+                    ""
                   }`}>
                     {!computerChoice ? "✊" : choiceIcons[computerChoice]}
                   </div>
@@ -354,9 +465,9 @@ function GameContent() {
 
               {/* Result Display */}
               {result && (
-                <div className={`text-3xl font-bold px-8 py-3 rounded-full transition-opacity duration-500 ${
-                  gameState === "finished" ? "opacity-100" : "opacity-0"
-                } ${getResultColor()} text-white`}>
+                <div className={`text-3xl font-bold px-8 py-3 rounded-full transition-all duration-700 ease-out ${
+                  gameState === "finished" || animationStage === "resultReveal" ? "opacity-100 scale-100" : "opacity-0 scale-0"
+                } ${getResultColor()} text-white shadow-lg animate-resultPop`}>
                   {result}
                 </div>
               )}
@@ -364,28 +475,36 @@ function GameContent() {
 
             {/* Computer Side */}
             <div className="flex flex-col items-center">
-              <h2 className="text-2xl font-bold text-white mb-4">Computer</h2>
+              <h2 className={`text-2xl font-bold text-white mb-4 transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                   style={{ transitionDelay: '900ms' }}>Computer</h2>
               <div className="flex flex-col gap-6">
                 {computerCards.map((card, index) => (
                   <div 
                     key={`computer-${index}`}
-                    className={`relative w-32 h-40 transition-all duration-300 ${
-                      flippedComputerIndex === index && gameState !== "idle" 
+                    className={`relative w-32 h-40 transition-all duration-700 ease-out ${
+                      flippedComputerIndex === index && gameState !== "idle" && gameState !== "loading"
                         ? "transform -translate-x-20 z-10" 
                         : ""
+                    } ${
+                      !cardsReady ? "opacity-0 translate-x-20" : "opacity-100 translate-x-0"
                     }`}
-                    style={{ perspective: "1000px" }}
+                    style={{ 
+                      perspective: "1500px",
+                      transitionDelay: `${index * 150}ms`,
+                      transform: cardsReady && gameState === "idle" ? `rotate(${getRandomRotation()}deg) translateY(${getRandomOffset()}px)` : undefined
+                    }}
                   >
-                    <div className={`relative w-full h-full transition-transform duration-500 ${
+                    <div className={`relative w-full h-full transition-transform duration-700 ease-out ${
                       flippedComputerIndex === index ? "[transform:rotateY(180deg)]" : ""
                     }`} style={{ transformStyle: "preserve-3d" }}>
                       {/* Card Back (Hidden) */}
-                      <div className="absolute w-full h-full bg-gradient-to-br from-red-600 to-red-800 rounded-xl shadow-lg flex items-center justify-center [backface-visibility:hidden]">
-                        <span className="text-white text-6xl">?</span>
+                      <div className="absolute w-full h-full bg-gradient-to-br from-red-600 to-red-800 rounded-xl shadow-lg flex items-center justify-center [backface-visibility:hidden] group">
+                        <span className="text-white text-6xl group-hover:scale-110 transition-transform duration-500">?</span>
+                        <div className="absolute inset-0 rounded-xl border-2 border-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                       {/* Card Front (Revealed) */}
                       <div className="absolute w-full h-full bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl shadow-lg flex flex-col items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        <span className="text-7xl">{choiceIcons[card]}</span>
+                        <span className="text-7xl animate-floatBounce">{choiceIcons[card]}</span>
                         <span className="text-white text-lg mt-2">{card}</span>
                       </div>
                     </div>
@@ -396,21 +515,131 @@ function GameContent() {
           </div>
 
           {/* Game Status */}
+          {gameState === "loading" && (
+            <div className={`text-white text-xl mb-6 animate-fadeInPulse transition-all duration-700 ease-out ${pageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                style={{ transitionDelay: '1000ms' }}>Dealing cards...</div>
+          )}
+          
           {gameState === "idle" && (
-            <p className="text-white text-xl mb-6">Select one of your cards to play</p>
+            <p className={`text-white text-xl mb-6 transition-all duration-700 ease-out ${pageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+               style={{ transitionDelay: '1000ms' }}>Select one of your cards to play</p>
           )}
 
           {/* Play Again Button */}
           {gameState === "finished" && (
             <button
               onClick={handlePlayAgain}
-              className="px-8 py-3 bg-white text-purple-900 font-bold rounded-full hover:bg-gray-200 transition-colors text-lg"
+              className="px-8 py-3 bg-white text-purple-900 font-bold rounded-full hover:bg-gray-200 hover:scale-105 transition-all duration-500 ease-out text-lg shadow-lg animate-fadeIn opacity-0"
             >
               Next Round
             </button>
           )}
         </>
       )}
+
+      {/* Add custom animations to global styles */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        
+        @keyframes scaleIn {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+          100% { transform: translateY(0px); }
+        }
+        
+        @keyframes floatBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        
+        @keyframes smoothShake {
+          0%, 100% { transform: rotate(0deg); }
+          15% { transform: rotate(-15deg); }
+          30% { transform: rotate(8deg); }
+          45% { transform: rotate(-8deg); }
+          60% { transform: rotate(8deg); }
+          75% { transform: rotate(-8deg); }
+          90% { transform: rotate(5deg); }
+        }
+        
+        @keyframes smoothWave {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-8px) rotate(5deg); }
+          50% { transform: translateY(-12px) rotate(0deg); }
+          75% { transform: translateY(-6px) rotate(-5deg); }
+        }
+        
+        @keyframes smoothCut {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(20deg); }
+          50% { transform: rotate(70deg) translateY(-5px); }
+          75% { transform: rotate(100deg) translateY(-2px); }
+          90% { transform: rotate(90deg); }
+        }
+        
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+          50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.7); }
+        }
+        
+        @keyframes resultPop {
+          0% { transform: scale(0.5); opacity: 0; }
+          60% { transform: scale(1.1); opacity: 1; }
+          80% { transform: scale(0.95); }
+          100% { transform: scale(1); }
+        }
+        
+        @keyframes fadeInPulse {
+          0% { opacity: 0; }
+          50% { opacity: 1; }
+          75% { opacity: 0.7; }
+          100% { opacity: 1; }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.7s ease-out forwards;
+        }
+        
+        .animate-scaleIn {
+          animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .animate-floatBounce {
+          animation: floatBounce 2s ease-in-out infinite;
+        }
+        
+        .animate-smoothShake {
+          animation: smoothShake 1.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        
+        .animate-smoothWave {
+          animation: smoothWave 1.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        
+        .animate-smoothCut {
+          animation: smoothCut 1.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        
+        .animate-glow {
+          animation: glow 1.5s ease-in-out infinite;
+        }
+        
+        .animate-fadeInPulse {
+          animation: fadeInPulse 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
@@ -418,8 +647,19 @@ function GameContent() {
 // Loading fallback component
 function GameLoading() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      <div className="text-white text-2xl">Loading game...</div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+      <div className="text-white text-2xl animate-fadeInPulse mb-6">Loading game...</div>
+      <div className="flex gap-4">
+        {["✊", "✋", "✌️"].map((icon, index) => (
+          <div 
+            key={index}
+            className="w-16 h-16 bg-purple-800 rounded-full flex items-center justify-center text-3xl animate-float"
+            style={{ animationDelay: `${index * 0.3}s` }}
+          >
+            {icon}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
