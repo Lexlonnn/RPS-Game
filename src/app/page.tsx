@@ -1,7 +1,9 @@
-import Game from "./pages/Game";
+
+import HomePage from "./home/page";
+
 
 export default function Home() {
   return (
-    <Game />
+    <HomePage />
   );
 }
