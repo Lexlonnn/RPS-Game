@@ -234,15 +234,7 @@ function GameContent() {
   const handleBackToHome = () => {
     router.push('/');
   };
-
-  // Function to change number of rounds
-  const handleChangeRounds = (newRounds: number) => {
-    if (newRounds >= 1 && newRounds <= 10) {
-      setTotalRounds(newRounds);
-      router.push(`/game?rounds=${newRounds}`);
-      startNewGame();
-    }
-  };
+;
 
   // Generate a random rotation for initial card appearance
   const getRandomRotation = () => {
@@ -259,92 +251,52 @@ function GameContent() {
       {/* Enhanced Background Animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full">
-          {[...Array(30)].map((_, i) => (
+          {[...Array(50)].map((_, i) => (
             <div 
               key={i}
               className="absolute rounded-full bg-white opacity-10 animate-float"
               style={{
-                width: `${Math.random() * 12 + 3}px`,
-                height: `${Math.random() * 12 + 3}px`,
+                width: `${Math.random() * 20 + 5}px`,
+                height: `${Math.random() * 20 + 5}px`,
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
-                animationDuration: `${Math.random() * 8 + 4}s`,
-                animationDelay: `${Math.random() * 5}s`
+                animationDuration: `${Math.random() * 12 + 6}s`,
+                animationDelay: `${Math.random() * 5}s`,
+                filter: `blur(${Math.random() * 2 + 1}px)`
+              }}
+            />
+          ))}
+        </div>
+        {/* Add additional animated shapes for depth */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          {[...Array(20)].map((_, i) => (
+            <div 
+              key={`star-${i}`}
+              className="absolute bg-purple-300 opacity-20 animate-twinkle"
+              style={{
+                width: `${Math.random() * 3 + 1}px`,
+                height: `${Math.random() * 3 + 1}px`,
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDuration: `${Math.random() * 4 + 2}s`,
+                animationDelay: `${Math.random() * 3}s`
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* Round Info and Controls */}
+      {/* Round Info - Removed round selector */}
       <div className={`flex items-center justify-center mb-4 text-white transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}
            style={{ transitionDelay: '200ms' }}>
         {gameState !== "gameOver" && (
-          <div className="text-xl mr-8 animate-fadeIn">
+          <div className="text-xl animate-fadeIn">
             Round {roundsPlayed + 1} of {totalRounds}
           </div>
         )}
+      </div>
         
-        {/* Round selector - only visible before game starts or after game ends */}
-        {(gameState === "idle" && roundsPlayed === 0) || gameState === "gameOver" ? (
-          <div className="flex items-center animate-fadeIn">
-            <span className="mr-2">Rounds:</span>
-            <div className="flex border border-white rounded-lg overflow-hidden">
-              <button 
-                onClick={() => handleChangeRounds(totalRounds - 2)}
-                disabled={totalRounds <= 3}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
-              >
-                -2
-              </button>
-              <button 
-                onClick={() => handleChangeRounds(totalRounds - 1)}
-                disabled={totalRounds <= 1}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
-              >
-                -
-              </button>
-              <span className="px-3 py-1 bg-purple-900">{totalRounds}</span>
-              <button 
-                onClick={() => handleChangeRounds(totalRounds + 1)}
-                disabled={totalRounds >= 10}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
-              >
-                +
-              </button>
-              <button 
-                onClick={() => handleChangeRounds(totalRounds + 2)}
-                disabled={totalRounds >= 8}
-                className="px-2 py-1 bg-purple-800 hover:bg-purple-700 disabled:opacity-50 transition-all duration-300"
-              >
-                +2
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Score Display */}
-      <div className={`flex items-center justify-center gap-8 mb-8 transition-all duration-700 ease-out ${pageLoaded ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}
-           style={{ transitionDelay: '400ms' }}>
-        <div className="text-center relative group">
-          <div className="absolute -inset-2 bg-green-500 opacity-20 rounded-lg blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
-          <div className="relative">
-            <p className="text-white opacity-80">You</p>
-            <p className="text-4xl font-bold text-green-400 transition-all duration-500">{score.player}</p>
-          </div>
-        </div>
-        <div className="text-white text-2xl font-bold animate-pulse">vs</div>
-        <div className="text-center relative group">
-          <div className="absolute -inset-2 bg-red-500 opacity-20 rounded-lg blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
-          <div className="relative">
-            <p className="text-white opacity-80">Computer</p>
-            <p className="text-4xl font-bold text-red-400 transition-all duration-500">{score.computer}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Game Over Screen */}
+      {/* Game Over Screen - Removed round adjustment */}
       {gameState === "gameOver" ? (
         <div className={`flex flex-col items-center justify-center animate-scaleIn ${pageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-1000 ease-out`}
              style={{ transitionDelay: '600ms' }}>
@@ -537,8 +489,19 @@ function GameContent() {
         </>
       )}
 
-      {/* Add custom animations to global styles */}
+      {/* Add enhanced animations to global styles */}
       <style jsx global>{`
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(3deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.5; transform: scale(1.5); }
+        }
+        
         @keyframes fadeIn {
           0% { opacity: 0; }
           100% { opacity: 1; }
@@ -547,12 +510,6 @@ function GameContent() {
         @keyframes scaleIn {
           0% { opacity: 0; transform: scale(0.9); }
           100% { opacity: 1; transform: scale(1); }
-        }
-        
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
         }
         
         @keyframes floatBounce {
@@ -638,6 +595,10 @@ function GameContent() {
         
         .animate-fadeInPulse {
           animation: fadeInPulse 2s ease-in-out infinite;
+        }
+        
+        .animate-twinkle {
+          animation: twinkle 3s ease-in-out infinite;
         }
       `}</style>
     </div>

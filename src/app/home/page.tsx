@@ -80,9 +80,11 @@ export default function HomePage() {
             Rock Paper Scissors
           </h1>
           <p className="text-xl mb-8 animate-fade-in font-medium drop-shadow-text">
-            The classic game of strategy and chance! Test your luck and outsmart your opponent in this
-            timeless battle of wits.
-          </p>
+      Embark on a timeless contest of intellect and chance! Strategize, adapt, and outmaneuver your adversary in this classic battle of wits and unpredictability.
+    </p>
+    <p className="text-md sm:text-lg mt-4 text-gray-300">
+      Your cards remain enigmatic until the moment of revelation. Exercise prudence and foresight to triumph over the computer&#39;s cunning maneuvers!
+    </p>
           <button
             onClick={() => animationState === "idle" && handleNavigation("rules")}
             className={`px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full font-bold text-lg hover:scale-110 transition-transform duration-300 animate-pulse-slow ${animationState !== "idle" ? 'pointer-events-none' : ''}`}
