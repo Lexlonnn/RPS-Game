@@ -13,11 +13,13 @@ const Game: React.FC = () => {
   const [playerChoice, setPlayerChoice] = useState<string | null>(null);
   const [computerChoice, setComputerChoice] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  const [flippedCards, setFlippedCards] = useState<number[]>([]);
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [score, setScore] = useState<Score>({ player: 0, computer: 0 });
   const [animationState, setAnimationState] = useState<string>("idle");
   const [resultVisible, setResultVisible] = useState<boolean>(false);
+  const [score, setScore] = useState<Score>({ player: 0, computer: 0 });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [flippedCards, setFlippedCards] = useState<number[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   const choices: Choice[] = ["Rock", "Paper", "Scissors"];
   const choiceIcons: Record<Choice, string> = {
@@ -43,7 +45,6 @@ const Game: React.FC = () => {
 
     const selectedChoice = cards[index];
     setPlayerChoice(selectedChoice);
-    setFlippedCards((prev) => [...prev, index]);
 
     // Computer selects a random card
     const computerIndex = Math.floor(Math.random() * choices.length);
@@ -85,8 +86,6 @@ const Game: React.FC = () => {
     setPlayerChoice(null);
     setComputerChoice(null);
     setResult(null);
-    setFlippedCards([]);
-    setShowModal(false);
     setAnimationState("idle");
     setResultVisible(false);
     initializeGame();
