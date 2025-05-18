@@ -16,6 +16,8 @@ const Game: React.FC = () => {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [score, setScore] = useState<Score>({ player: 0, computer: 0 });
+  const [animationState, setAnimationState] = useState<string>("idle");
+  const [resultVisible, setResultVisible] = useState<boolean>(false);
 
   const choices: Choice[] = ["Rock", "Paper", "Scissors"];
   const choiceIcons: Record<Choice, string> = {
@@ -37,21 +39,26 @@ const Game: React.FC = () => {
   };
 
   const handleCardClick = (index: number): void => {
-    if (playerChoice || computerChoice) return; // Prevent multiple selections
+    if (playerChoice || computerChoice || animationState !== "idle") return; // Prevent multiple selections
 
-    // Player selects a card
-    setPlayerChoice(cards[index]);
+    const selectedChoice = cards[index];
+    setPlayerChoice(selectedChoice);
     setFlippedCards((prev) => [...prev, index]);
 
     // Computer selects a random card
-    const computerIndex = Math.floor(Math.random() * 3);
-    setComputerChoice(cards[computerIndex]);
-    setFlippedCards((prev) => [...prev, computerIndex]);
+    const computerIndex = Math.floor(Math.random() * choices.length);
+    const computerSelectedChoice = choices[computerIndex];
+    setComputerChoice(computerSelectedChoice);
 
-    // Determine the result after a short delay
+    // Start animation sequence
+    setAnimationState("animating");
+    
+    // After animations complete, show the result
     setTimeout(() => {
-      determineWinner(cards[index], cards[computerIndex]);
-    }, 1000);
+      setAnimationState("finished");
+      determineWinner(selectedChoice, computerSelectedChoice);
+      setResultVisible(true);
+    }, 1500);
   };
 
   const determineWinner = (player: string, computer: string): void => {
@@ -72,8 +79,6 @@ const Game: React.FC = () => {
     }
     
     setResult(newResult);
-    // Show the modal with the result
-    setShowModal(true);
   };
 
   const resetGame = (): void => {
@@ -82,201 +87,262 @@ const Game: React.FC = () => {
     setResult(null);
     setFlippedCards([]);
     setShowModal(false);
+    setAnimationState("idle");
+    setResultVisible(false);
     initializeGame();
   };
 
+  // Get result color based on outcome
+  const getResultColor = () => {
+    if (result === "You win!") {
+      return {
+        bg: "linear-gradient(to right, #4ade80, #22d3ee)",
+        shadow: "0 4px 20px rgba(74, 222, 128, 0.5)"
+      };
+    } else if (result === "You lose!") {
+      return {
+        bg: "linear-gradient(to right, #f87171, #f43f5e)",
+        shadow: "0 4px 20px rgba(248, 113, 113, 0.5)"
+      };
+    } else {
+      return {
+        bg: "linear-gradient(to right, #d8b4fe, #a78bfa)",
+        shadow: "0 4px 20px rgba(216, 180, 254, 0.5)"
+      };
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-600 p-6">
-      {/* Title with gradient text */}
-      <h1 className="text-6xl font-extrabold mb-4 text-center"
-          style={{
-            background: "linear-gradient(to right, #00c6ff, #92effd, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            textShadow: "0 2px 10px rgba(0, 198, 255, 0.3)"
-          }}>
-        Rock, Paper, Scissors
-      </h1>
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-6 relative overflow-hidden">
+      {/* Background Lighting Effect */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-pink-500 to-red-500 rounded-full blur-3xl opacity-10"></div>
+      </div>
+
+      {/* Add padding to account for the fixed navbar */}
+      <div className="mt-20"></div>
       
       {/* Score display */}
-      <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-4 mb-8 flex items-center justify-center space-x-8 shadow-lg">
+      <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-6 mb-8 flex items-center justify-center space-x-8 shadow-2xl border border-white border-opacity-10">
         <div className="text-center">
           <p className="text-white text-lg font-medium opacity-80">You</p>
-          <p className="text-3xl font-bold"
+          <p className="text-4xl font-extrabold"
             style={{
               background: "linear-gradient(to right, #4ade80, #22d3ee)",
               WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
+              WebkitTextFillColor: "transparent",
+              textShadow: "0 4px 20px rgba(74, 222, 128, 0.5)"
             }}>
             {score.player}
           </p>
         </div>
-        <div className="text-white text-xl font-bold">vs</div>
+        <div className="text-white text-2xl font-bold">vs</div>
         <div className="text-center">
           <p className="text-white text-lg font-medium opacity-80">Computer</p>
-          <p className="text-3xl font-bold"
+          <p className="text-4xl font-extrabold"
             style={{
               background: "linear-gradient(to right, #f87171, #f43f5e)",
               WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
+              WebkitTextFillColor: "transparent",
+              textShadow: "0 4px 20px rgba(248, 113, 113, 0.5)"
             }}>
             {score.computer}
           </p>
         </div>
       </div>
       
-      <div className="w-full max-w-4xl">
-        {/* Computer Section */}
-        <h2 className="text-3xl font-bold mb-6 text-center"
-            style={{
-              background: "linear-gradient(to right, #f87171, #f43f5e)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
-            }}>
-          Computer
-        </h2>
-        
-        <div className="grid grid-cols-3 gap-8 mb-16">
-          {cards.slice(0, 3).map((card, index) => (
-            <div
-              key={index}
-              className="relative w-32 h-48 mx-auto"
-              style={{ perspective: "1000px" }}
+      {/* Main game area with battle animation */}
+      <div className="w-full max-w-4xl relative z-10 mb-8">
+        <div className="flex flex-col items-center justify-center">
+          {/* Battle Arena */}
+          <div className="relative w-full h-56 mb-8 flex justify-between items-center">
+            {/* Player Choice Display */}
+            <div 
+              className={`w-40 h-40 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center transition-all duration-500 shadow-lg ${animationState === "idle" ? "opacity-0" : "opacity-100"}`}
+              style={{
+                transform: animationState === "animating" 
+                  ? "translateX(100px) scale(1.1)" 
+                  : animationState === "finished" 
+                    ? "translateX(60px) scale(1)" 
+                    : "translateX(0) scale(1)",
+                transition: "all 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6)"
+              }}
             >
-              <div
-                className="absolute w-full h-full transition-all duration-500"
-                style={{ 
-                  transformStyle: "preserve-3d",
-                  transform: flippedCards.includes(index) ? "rotateY(180deg)" : "rotateY(0deg)"
-                }}
-              >
-                {/* Front of the card */}
-                <div className="absolute w-full h-full rounded-xl shadow-lg flex items-center justify-center"
-                     style={{ 
-                       backfaceVisibility: "hidden", 
-                       background: "linear-gradient(135deg, #1e293b, #0f172a)"
-                     }}>
-                  <div className="w-16 h-16 border-2 border-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-gray-400 text-4xl">?</span>
-                  </div>
-                </div>
-                {/* Back of the card */}
-                <div className="absolute w-full h-full rounded-xl shadow-lg flex flex-col items-center justify-center"
-                     style={{ 
-                       backfaceVisibility: "hidden", 
-                       transform: "rotateY(180deg)",
-                       background: "linear-gradient(135deg, #4c1d95, #7e22ce)" 
-                     }}>
-                  <span className="text-6xl mb-2">{choiceIcons[card as Choice]}</span>
-                  <span className="text-white font-bold">{card}</span>
-                </div>
-              </div>
+              {playerChoice && (
+                <span className="text-8xl">{choiceIcons[playerChoice as Choice]}</span>
+              )}
             </div>
-          ))}
-        </div>
 
-        {/* Player Section */}
-        <h2 className="text-3xl font-bold mb-6 text-center"
-            style={{
-              background: "linear-gradient(to right, #4ade80, #22d3ee)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
-            }}>
-          Player
-        </h2>
-        
-        <div className="grid grid-cols-3 gap-8">
-          {cards.slice(3, 6).map((card, index) => (
-            <div
-              key={index + 3}
-              onClick={() => handleCardClick(index + 3)}
-              className="relative w-32 h-48 cursor-pointer mx-auto transform transition-transform hover:scale-105"
-              style={{ perspective: "1000px" }}
+            {/* Center Result Display */}
+            <div 
+              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${resultVisible ? "opacity-100 scale-100" : "opacity-0 scale-0"}`}
             >
-              <div
-                className="absolute w-full h-full transition-all duration-500 shadow-lg"
-                style={{ 
-                  transformStyle: "preserve-3d",
-                  transform: flippedCards.includes(index + 3) ? "rotateY(180deg)" : "rotateY(0deg)"
-                }}
-              >
-                {/* Front of the card */}
-                <div className="absolute w-full h-full rounded-xl flex items-center justify-center"
-                     style={{ 
-                       backfaceVisibility: "hidden",
-                       background: "linear-gradient(135deg, #1e293b, #0f172a)",
-                       boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" 
-                     }}>
-                  <div className="w-16 h-16 border-2 border-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-gray-400 text-4xl">?</span>
+              {result && (
+                <div className="text-4xl font-bold"
+                  style={{
+                    background: getResultColor().bg,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    textShadow: getResultColor().shadow
+                  }}
+                >
+                  {result}
+                </div>
+              )}
+            </div>
+
+            {/* Computer Choice Display */}
+            <div 
+              className={`w-40 h-40 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center transition-all duration-500 shadow-lg ${animationState === "idle" ? "opacity-0" : "opacity-100"}`}
+              style={{
+                transform: animationState === "animating" 
+                  ? "translateX(-100px) scale(1.1)" 
+                  : animationState === "finished" 
+                    ? "translateX(-60px) scale(1)" 
+                    : "translateX(0) scale(1)",
+                transition: "all 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6)"
+              }}
+            >
+              {computerChoice && (
+                <span className="text-8xl">{choiceIcons[computerChoice as Choice]}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="w-full max-w-4xl relative z-10">
+        <div className="flex flex-col md:flex-row justify-between gap-8">
+          {/* Player Section */}
+          <div className="md:w-1/2">
+            <h2 className="text-3xl font-bold mb-6 text-center"
+                style={{
+                  background: "linear-gradient(to right, #4ade80, #22d3ee)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: "0 4px 20px rgba(74, 222, 128, 0.5)"
+                }}>
+              Player
+            </h2>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {choices.map((choice, index) => (
+                <div
+                  key={`player-${index}`}
+                  onClick={() => handleCardClick(index)}
+                  className={`relative w-24 h-36 cursor-pointer mx-auto transform transition-transform hover:scale-105 ${animationState !== "idle" ? "pointer-events-none" : ""}`}
+                  style={{ perspective: "1000px" }}
+                >
+                  <div
+                    className="absolute w-full h-full transition-all duration-500 shadow-lg"
+                    style={{ 
+                      transformStyle: "preserve-3d",
+                      transform: playerChoice === choice ? "rotateY(180deg)" : "rotateY(0deg)"
+                    }}
+                  >
+                    {/* Front of the card */}
+                    <div className="absolute w-full h-full rounded-xl flex items-center justify-center"
+                         style={{ 
+                           backfaceVisibility: "hidden",
+                           background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                           boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.3)"
+                         }}>
+                      <div className="w-12 h-12 border-2 border-gray-600 rounded-full flex items-center justify-center">
+                        <span className="text-gray-400 text-2xl">?</span>
+                      </div>
+                    </div>
+                    {/* Back of the card */}
+                    <div className="absolute w-full h-full rounded-xl flex flex-col items-center justify-center"
+                         style={{ 
+                           backfaceVisibility: "hidden", 
+                           transform: "rotateY(180deg)",
+                           background: "linear-gradient(135deg, #0d9488, #14b8a6)",
+                           boxShadow: "0 10px 30px -5px rgba(20, 184, 166, 0.5)"
+                         }}>
+                      <span className="text-4xl mb-2">{choiceIcons[choice]}</span>
+                      <span className="text-white font-bold text-sm">{choice}</span>
+                    </div>
                   </div>
                 </div>
-                {/* Back of the card */}
-                <div className="absolute w-full h-full rounded-xl flex flex-col items-center justify-center"
-                     style={{ 
-                       backfaceVisibility: "hidden", 
-                       transform: "rotateY(180deg)",
-                       background: "linear-gradient(135deg, #0d9488, #14b8a6)" 
-                     }}>
-                  <span className="text-6xl mb-2">{choiceIcons[card as Choice]}</span>
-                  <span className="text-white font-bold">{card}</span>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+          
+          {/* Computer Section */}
+          <div className="md:w-1/2">
+            <h2 className="text-3xl font-bold mb-6 text-center"
+                style={{
+                  background: "linear-gradient(to right, #f87171, #f43f5e)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: "0 4px 20px rgba(248, 113, 113, 0.5)"
+                }}>
+              Computer
+            </h2>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {choices.map((choice, index) => (
+                <div
+                  key={`computer-${index}`}
+                  className="relative w-24 h-36 mx-auto"
+                  style={{ perspective: "1000px" }}
+                >
+                  <div
+                    className="absolute w-full h-full transition-all duration-500 shadow-2xl"
+                    style={{ 
+                      transformStyle: "preserve-3d",
+                      transform: computerChoice === choice ? "rotateY(180deg)" : "rotateY(0deg)"
+                    }}
+                  >
+                    {/* Front of the card */}
+                    <div className="absolute w-full h-full rounded-xl shadow-lg flex items-center justify-center"
+                         style={{ 
+                           backfaceVisibility: "hidden", 
+                           background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                           boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.3)"
+                         }}>
+                      <div className="w-12 h-12 border-2 border-gray-600 rounded-full flex items-center justify-center">
+                        <span className="text-gray-400 text-2xl">?</span>
+                      </div>
+                    </div>
+                    {/* Back of the card */}
+                    <div className="absolute w-full h-full rounded-xl shadow-lg flex flex-col items-center justify-center"
+                         style={{ 
+                           backfaceVisibility: "hidden", 
+                           transform: "rotateY(180deg)",
+                           background: "linear-gradient(135deg, #4c1d95, #7e22ce)",
+                           boxShadow: "0 10px 30px -5px rgba(124, 58, 237, 0.5)"
+                         }}>
+                      <span className="text-4xl mb-2">{choiceIcons[choice]}</span>
+                      <span className="text-white font-bold text-sm">{choice}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Modal Section */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50">
-          <div className="bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 text-white w-96 p-8 rounded-2xl shadow-2xl text-center"
-               style={{
-                 background: "linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8))"
-               }}>
-            <p className="text-3xl font-bold mb-6"
-               style={{
-                 background: result === "You win!" 
-                   ? "linear-gradient(to right, #4ade80, #22d3ee)" 
-                   : result === "You lose!" 
-                     ? "linear-gradient(to right, #f87171, #f43f5e)" 
-                     : "linear-gradient(to right, #d8b4fe, #a78bfa)",
-                 WebkitBackgroundClip: "text",
-                 WebkitTextFillColor: "transparent"
-               }}>
-              {result}
-            </p>
-            
-            <div className="flex justify-between items-center mb-8">
-              <div className="text-center">
-                <div className="mb-2 text-5xl">{playerChoice && choiceIcons[playerChoice as Choice]}</div>
-                <p className="text-sm text-gray-300">You chose</p>
-                <p className="text-lg font-bold text-white">{playerChoice}</p>
-              </div>
-              
-              <div className="text-white text-xl font-bold">vs</div>
-              
-              <div className="text-center">
-                <div className="mb-2 text-5xl">{computerChoice && choiceIcons[computerChoice as Choice]}</div>
-                <p className="text-sm text-gray-300">Computer chose</p>
-                <p className="text-lg font-bold text-white">{computerChoice}</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={resetGame}
-              className="px-8 py-3 rounded-full font-bold text-white shadow-lg transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transform hover:scale-105"
-            >
-              Play Again
-            </button>
-          </div>
+      {/* Play Again Button */}
+      {animationState === "finished" && (
+        <div className="mt-10">
+          <button
+            onClick={resetGame}
+            className="px-8 py-3 rounded-full font-bold text-white shadow-lg transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transform hover:scale-105"
+          >
+            Play Again
+          </button>
         </div>
       )}
       
-      {!showModal && !playerChoice && (
+      {animationState === "idle" && !playerChoice && (
         <div className="mt-10 text-center">
           <p className="text-white text-lg opacity-80">
-            Click a card to play
+            Choose your move
           </p>
         </div>
       )}
